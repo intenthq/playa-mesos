@@ -59,6 +59,18 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     v.vmx['numvcpus'] = pmconf.vm_cpus
   end
 
+  config.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get -y install mesos marathon chronos"
+  config.vm.provision "shell", inline: "ps axf | grep /usr/bin/marathon | grep -v grep | awk '{ print $1 }' | xargs sudo kill"
+  config.vm.provision "shell", inline: "ps axf | grep /usr/bin/chronos | grep -v grep | awk '{ print $1 }' | xargs sudo kill"
+  config.vm.provision "file", source: "~/.docker", destination: ".docker"
+  config.vm.provision "file", source: "~/.dockercfg", destination: ".dockercfg"
+  config.vm.provision "shell", inline: "sudo cp -r /home/vagrant/.docker* /root/"
+
+  config.vm.provision "file", source: "lib/files/mesos-dns/config.json", destination: "config.json"
+  config.vm.provision "shell", inline: "sudo docker run -d --net=host -v /home/vagrant/config.json:/config.json -v /var/log:/tmp mesosphere/mesos-dns:0.5.2 /usr/bin/mesos-dns -v=2 -config=/config.json"
+  config.vm.provision "shell", inline: "echo 'nameserver 127.0.0.1' >> /etc/resolvconf/resolv.conf.d/head && /etc/init.d/resolvconf stop && /etc/init.d/resolvconf start"
+
+
   # Make the project root available to the guest VM.
   # config.vm.synced_folder '.', '/vagrant'
 
